@@ -88,117 +88,162 @@ module picorv32_tmr #(
     parameter [31:0] STACKADDR = 32'h ffff_ffff
 ) (
     input clk, resetn,
-    output reg trap,
+    output trap,
 
-    output reg        mem_valid,
-    output reg        mem_instr,
-    input             mem_ready,
+    output        mem_valid,
+    output        mem_instr,
+    input         mem_ready,
 
-    output reg [31:0] mem_addr,
-    output reg [31:0] mem_wdata,
-    output reg [ 3:0] mem_wstrb,
-    input      [31:0] mem_rdata,
+    output [31:0] mem_addr,
+    output [31:0] mem_wdata,
+    output [ 3:0] mem_wstrb,
+    input  [31:0] mem_rdata,
 
     // Look-Ahead Interface
-    output            mem_la_read,
-    output            mem_la_write,
-    output     [31:0] mem_la_addr,
-    output reg [31:0] mem_la_wdata,
-    output reg [ 3:0] mem_la_wstrb,
+    output        mem_la_read,
+    output        mem_la_write,
+    output [31:0] mem_la_addr,
+    output [31:0] mem_la_wdata,
+    output [ 3:0] mem_la_wstrb,
 
     // Pico Co-Processor Interface (PCPI)
-    output reg        pcpi_valid,
-    output reg [31:0] pcpi_insn,
-    output     [31:0] pcpi_rs1,
-    output     [31:0] pcpi_rs2,
-    input             pcpi_wr,
-    input      [31:0] pcpi_rd,
-    input             pcpi_wait,
-    input             pcpi_ready,
+    output        pcpi_valid,
+    output [31:0] pcpi_insn,
+    output [31:0] pcpi_rs1,
+    output [31:0] pcpi_rs2,
+    input         pcpi_wr,
+    input  [31:0] pcpi_rd,
+    input         pcpi_wait,
+    input         pcpi_ready,
 
     // IRQ Interface
-    input      [31:0] irq,
-    output reg [31:0] eoi,
+    input  [31:0] irq,
+    output [31:0] eoi,
 
     // Trace Interface
-    output reg        trace_valid,
-    output reg [35:0] trace_data
+    output        trace_valid,
+    output [35:0] trace_data,
+
+    output [ 2:0] tmr_errors [12]
 );
 
-    wire resetn_a, resetn_b, resetn_c;
-    wire trap_a, trap_b, trap_c;
+    wire        resetn_tmr          [3];
+    wire        trap_tmr            [3];
 
-    wire mem_valid_a, mem_valid_b, mem_valid_c;
-    wire mem_instr_a, mem_instr_b, mem_instr_c;
+    wire        mem_valid_tmr       [3];
+    wire        mem_instr_tmr       [3];
 
-    wire [31:0] mem_addr_a, mem_addr_b, mem_addr_c;
-    wire [31:0] mem_wdata_a, mem_wdata_b, mem_wdata_c;
-    wire [ 3:0] mem_wstrb_a, mem_wstrb_b, mem_wstrb_c;
+    wire [31:0] mem_addr_tmr        [3];
+    wire [31:0] mem_wdata_tmr       [3];
+    wire [ 3:0] mem_wstrb_tmr       [3];
 
-    wire        mem_la_read_a, mem_la_read_b, mem_la_read_c;
-    wire        mem_la_write_a, mem_la_write_b, mem_la_write_c;
-    wire [31:0] mem_la_addr_a, mem_la_addr_b, mem_la_addr_c;
-    wire [31:0] mem_la_wdata_a, mem_la_wdata_b, mem_la_wdata_c;
-    wire [ 3:0] mem_la_wstrb_a, mem_la_wstrb_b, mem_la_wstrb_c;
+    wire        mem_la_read_tmr     [3];
+    wire        mem_la_write_tmr    [3];
+    wire [31:0] mem_la_addr_tmr     [3];
+    wire [31:0] mem_la_wdata_tmr    [3];
+    wire [ 3:0] mem_la_wstrb_tmr    [3];
 
-    picorv32 #(
-    .ENABLE_COUNTERS,
-    .ENABLE_COUNTERS64,
-    .ENABLE_REGS_16_31,
-    .ENABLE_REGS_DUALPORT,
-    .LATCHED_MEM_RDATA,
-    .TWO_STAGE_SHIFT,
-    .BARREL_SHIFTER,
-    .TWO_CYCLE_COMPARE,
-    .TWO_CYCLE_ALU,
-    .COMPRESSED_ISA,
-    .CATCH_MISALIGN,
-    .CATCH_ILLINSN,
-    .ENABLE_PCPI,
-    .ENABLE_MUL,
-    .ENABLE_FAST_MUL,
-    .ENABLE_DIV,
-    .ENABLE_IRQ,
-    .ENABLE_IRQ_QREGS,
-    .ENABLE_IRQ_TIMER,
-    .ENABLE_TRACE,
-    .REGS_INIT_ZERO,
-    .MASKED_IRQ,
-    .LATCHED_IRQ,
-    .PROGADDR_RESET,
-    .PROGADDR_IRQ,
-    .STACKADDR
-    ) core_a (
-        .clk          (clk         ),
-        .resetn       (resetn_a    ),
-        .trap         (trap_a      ),
-        
-        // Memory Interface
-        .mem_valid    (mem_valid_a ),
-        .mem_instr    (mem_instr_a ),
-        .mem_ready    (mem_ready   ),
-        .mem_addr     (mem_addr_a  ),
-        .mem_wdata    (mem_wdata_a ),
-        .mem_wstrb    (mem_wstrb_a ),
-        .mem_rdata    (mem_rdata   ),
-        
-        // Pico Co-Processor Interface (PCPI)
-        .pcpi_valid  (pcpi_valid_a ),
-        .pcpi_insn   (pcpi_insn_a  ),
-        .pcpi_rs1    (pcpi_rs1_a   ),
-        .pcpi_rs2    (pcpi_rs2_a   ),
-        .pcpi_wr     (pcpi_wr      ),
-        .pcpi_rd     (pcpi_rd      ),
-        .pcpi_wait   (pcpi_wait    ),
-        .pcpi_ready  (pcpi_ready   ),
+    wire        pcpi_valid_tmr      [3];
+    wire [31:0] pcpi_insn_tmr       [3];
+    wire [31:0] pcpi_rs1_tmr        [3];
+    wire [31:0] pcpi_rs2_tmr        [3];
+    
+    wire [31:0] eoi_tmr             [3];
 
-        // IRQ Interface
-        .irq         (irq          ),
-        .eoi         (eoi_a        ),
+    wire        trace_valid_tmr     [3];
+    wire [35:0] trace_data_tmr      [3];
 
-        // Trace Interface
-        .trace_valid (trace_valid_a),
-        .trace_data  (trace_data_a )
-    );
+    wire [5:0]  mem_signals         [3];
+    wire [3:0]  mem_la_wstrb_signal [3];
+    wire [5:0]  mem_la_signals      [3];
+
+    genvar i;
+
+    generate
+      for (i = 0; i < 3; i = i+1) begin
+
+        picorv32 #(
+          ENABLE_COUNTERS,
+          ENABLE_COUNTERS64,
+          ENABLE_REGS_16_31,
+          ENABLE_REGS_DUALPORT,
+          LATCHED_MEM_RDATA,
+          TWO_STAGE_SHIFT,
+          BARREL_SHIFTER,
+          TWO_CYCLE_COMPARE,
+          TWO_CYCLE_ALU,
+          COMPRESSED_ISA,
+          CATCH_MISALIGN,
+          CATCH_ILLINSN,
+          ENABLE_PCPI,
+          ENABLE_MUL,
+          ENABLE_FAST_MUL,
+          ENABLE_DIV,
+          ENABLE_IRQ,
+          ENABLE_IRQ_QREGS,
+          ENABLE_IRQ_TIMER,
+          ENABLE_TRACE,
+          REGS_INIT_ZERO,
+          MASKED_IRQ,
+          LATCHED_IRQ,
+          PROGADDR_RESET,
+          PROGADDR_IRQ,
+          STACKADDR
+        ) core_u0 (
+            .clk          (clk                ),
+            .resetn       (resetn             ),
+            .trap         (trap_tmr   [i]     ),
+            
+            // Memory Interface
+            .mem_valid    (mem_valid_tmr [i]  ),
+            .mem_instr    (mem_instr_tmr [i]  ),
+            .mem_ready    (mem_ready          ),
+            .mem_addr     (mem_addr_tmr  [i]  ),
+            .mem_wdata    (mem_wdata_tmr [i]  ),
+            .mem_wstrb    (mem_wstrb_tmr [i]  ),
+            .mem_rdata    (mem_rdata          ),
+            
+            // Pico Co-Processor Interface (PCPI)
+            .pcpi_valid   (pcpi_valid_tmr [i] ),
+            .pcpi_insn    (pcpi_insn_tmr  [i] ),
+            .pcpi_rs1     (pcpi_rs1_tmr   [i] ),
+            .pcpi_rs2     (pcpi_rs2_tmr   [i] ),
+            .pcpi_wr      (pcpi_wr            ),
+            .pcpi_rd      (pcpi_rd            ),
+            .pcpi_wait    (pcpi_wait          ),
+            .pcpi_ready   (pcpi_ready         ),
+
+            // IRQ Interface
+            .irq          (irq                ),
+            .eoi          (eoi_tmr [i]        ),
+
+            // Trace Interface
+            .trace_valid  (trace_valid_tmr [i]),
+            .trace_data   (trace_data_tmr  [i])
+        );
+
+        assign mem_signals[i] = {mem_valid_tmr [i], mem_instr_tmr [i], mem_wstrb_tmr [i]};
+        assign mem_la_wstrb_signal[i] = mem_la_wstrb_tmr[i];
+        assign mem_la_signals[i] = {mem_la_read_tmr[i], mem_la_write_tmr[i], mem_la_wstrb_signal[i]};
+
+      end
+    endgenerate
+
+    word_voter #(1)  voter_trap (trap_tmr, trap, tmr_errors [0]);
+
+    word_voter #(6)  voter_mem_signals (mem_signals, {mem_valid, mem_instr, mem_wstrb}, tmr_errors [1]);
+    word_voter #(32) voter_mem_wdata (mem_addr_tmr, mem_addr, tmr_errors [2]);
+    word_voter #(32) voter_mem_addr (mem_wdata_tmr, mem_wdata, tmr_errors [3]);
+
+    word_voter #(6)  voter_mem_la_signals (mem_la_signals, {mem_la_read, mem_la_write, mem_la_wstrb}, tmr_errors [4]);
+    word_voter #(32) voter_mem_la_addr (mem_la_addr_tmr, mem_la_addr, tmr_errors [5]);
+    word_voter #(32) voter_mem_la_wdata (mem_la_wdata_tmr, mem_la_wdata, tmr_errors [6]);
+
+    word_voter #(1)  voter_pcpi_valid (pcpi_valid_tmr, pcpi_valid, tmr_errors [7]);
+    word_voter #(32) voter_pcpi_insn (pcpi_insn_tmr, pcpi_insn, tmr_errors [8]);
+    word_voter #(32) voter_pcpi_rs1 (pcpi_rs1_tmr, pcpi_rs1, tmr_errors [9]);
+    word_voter #(32) voter_pcpi_rs2 (pcpi_rs2_tmr, pcpi_rs2, tmr_errors [10]);
+
+    word_voter #(32) voter_eoi (eoi_tmr, eoi, tmr_errors [11]);
 
 endmodule

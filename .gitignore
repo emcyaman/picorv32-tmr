@@ -35,3 +35,11 @@
 /synth.log
 /synth.v
 .*.swp
+
+.vscode/
+
+*.out
+
+*.vvp
+
+*.vcd

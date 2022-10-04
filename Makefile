@@ -24,7 +24,13 @@ GIT_ENV = true
 test: testbench.vvp firmware/firmware.hex
 	$(VVP) -N $<
 
+test_tmr: testbench_tmr.vvp firmware/firmware.hex
+	$(VVP) -N $<
+
 test_vcd: testbench.vvp firmware/firmware.hex
+	$(VVP) -N $< +vcd +trace +noerror
+
+test_tmr_vcd: testbench_tmr.vvp firmware/firmware.hex
 	$(VVP) -N $< +vcd +trace +noerror
 
 test_rvf: testbench_rvf.vvp firmware/firmware.hex
@@ -62,6 +68,10 @@ test_verilator: testbench_verilator firmware/firmware.hex
 
 testbench.vvp: testbench.v picorv32.v
 	$(IVERILOG) -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	chmod -x $@
+
+testbench_tmr.vvp: testbench_tmr.v picorv32_tmr.v picorv32.v word_voter.v
+	$(IVERILOG) -g2005-sv -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
 testbench_rvf.vvp: testbench.v picorv32.v rvfimon.v
@@ -187,8 +197,8 @@ clean:
 		riscv-gnu-toolchain-riscv32im riscv-gnu-toolchain-riscv32imc
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
-		testbench.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp testbench_tmr_ez.vvp\
-		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench.trace \
+		testbench.vvp testbench_tmr.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp testbench_tmr_ez.vvp\
+		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench_tmr.vcd testbench.trace \
 		testbench_verilator testbench_verilator_dir
 
-.PHONY: test test_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_tmr_ez test_ez_vcd test_tmr_ez_vcd test_synth download-tools build-tools toc clean
+.PHONY: test test_tmr test_vcd test_tmr_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_tmr_ez test_ez_vcd test_tmr_ez_vcd test_synth download-tools build-tools toc clean

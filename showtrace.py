@@ -7,7 +7,7 @@ elf_filename = sys.argv[2]
 
 insns = dict()
 
-with subprocess.Popen(["riscv32-unknown-elf-objdump", "-d", elf_filename], stdout=subprocess.PIPE) as proc:
+with subprocess.Popen(["/opt/riscv32i/bin/riscv32-unknown-elf-objdump", "-d", elf_filename], stdout=subprocess.PIPE) as proc:
     while True:
         line = proc.stdout.readline().decode("ascii")
         if line == '': break

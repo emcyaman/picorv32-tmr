@@ -124,7 +124,7 @@ module picorv32_tmr #(
     output        trace_valid,
     output [35:0] trace_data,
 
-    output [ 2:0] tmr_errors [12]
+    output [ 2:0] tmr_errors [14]
 );
 
     wire        resetn_tmr          [3];
@@ -245,5 +245,8 @@ module picorv32_tmr #(
     word_voter #(32) voter_pcpi_rs2 (pcpi_rs2_tmr, pcpi_rs2, tmr_errors [10]);
 
     word_voter #(32) voter_eoi (eoi_tmr, eoi, tmr_errors [11]);
+
+    word_voter #(1)  voter_trace_valid (trace_valid_tmr, trace_valid, tmr_errors [13]);
+    word_voter #(36) voter_trace_data  (trace_data_tmr, trace_data, tmr_errors [12]);
 
 endmodule

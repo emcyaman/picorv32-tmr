@@ -198,7 +198,7 @@ clean:
 	rm -vrf $(FIRMWARE_OBJS) $(TEST_OBJS) check.smt2 check.vcd synth.v synth.log \
 		firmware/firmware.elf firmware/firmware.bin firmware/firmware.hex firmware/firmware.map \
 		testbench.vvp testbench_tmr.vvp testbench_sp.vvp testbench_synth.vvp testbench_ez.vvp testbench_tmr_ez.vvp\
-		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench_tmr.vcd testbench.trace \
+		testbench_rvf.vvp testbench_wb.vvp testbench.vcd testbench_tmr.vcd testbench.trace testbench_tmr.trace \
 		testbench_verilator testbench_verilator_dir
 
 .PHONY: test test_tmr test_vcd test_tmr_vcd test_sp test_axi test_wb test_wb_vcd test_ez test_tmr_ez test_ez_vcd test_tmr_ez_vcd test_synth download-tools build-tools toc clean

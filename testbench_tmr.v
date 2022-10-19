@@ -18,6 +18,14 @@ module testbench #(
 
     always #5 clk = ~clk;
 
+    integer cntr = 0;
+    always @(posedge clk) begin
+        if (cntr % 1000 == 0) begin
+            $display("Counter cycle: %d", cntr);
+        end
+        cntr = cntr + 1;
+    end
+
     initial begin
         repeat (100) @(posedge clk);
         resetn <= 1;
@@ -25,7 +33,7 @@ module testbench #(
 
     initial begin
         if ($test$plusargs("vcd")) begin
-            $dumpfile("testbench.vcd");
+            $dumpfile("testbench_tmr.vcd");
             $dumpvars(0, testbench);
         end
         repeat (1000000) @(posedge clk);
@@ -39,7 +47,7 @@ module testbench #(
 
     initial begin
         if ($test$plusargs("trace")) begin
-            trace_file = $fopen("testbench.trace", "w");
+            trace_file = $fopen("testbench_tmr.trace", "w");
             repeat (10) @(posedge clk);
             while (!trap) begin
                 @(posedge clk);
@@ -47,7 +55,7 @@ module testbench #(
                     $fwrite(trace_file, "%x\n", trace_data);
             end
             $fclose(trace_file);
-            $display("Finished writing testbench.trace.");
+            $display("Finished writing testbench_tmr.trace.");
         end
     end
 
@@ -95,7 +103,8 @@ module picorv32_wrapper #(
     wire [31:0] mem_rdata;
 
     memory #(
-        .SIZE 	   (128*1024/4)
+        .SIZE 	   (128*1024/4),
+        .VERBOSE   (VERBOSE)
     ) mem (
         .clk  	   (clk),
         
@@ -105,7 +114,9 @@ module picorv32_wrapper #(
         .mem_addr  (mem_addr),
         .mem_wdata (mem_wdata),
         .mem_wstrb (mem_wstrb),
-        .mem_rdata (mem_rdata)
+        .mem_rdata (mem_rdata),
+
+        .tests_passed (tests_passed)
     );
 
     picorv32_tmr #(
@@ -165,7 +176,8 @@ module picorv32_wrapper #(
 endmodule
 
 module memory #(
-    parameter [15:0] SIZE = 1024
+    parameter SIZE = 1024,
+    parameter VERBOSE = 0
 )
 (
     input clk,
@@ -176,21 +188,51 @@ module memory #(
     input [31:0] mem_addr,
     input [31:0] mem_wdata,
     input [ 3:0] mem_wstrb,
-    output reg [31:0] mem_rdata
+    output reg [31:0] mem_rdata,
+
+    output reg tests_passed
 );
 
     reg [31:0] memory [0:SIZE-1];
+	reg verbose;
+	initial verbose = $test$plusargs("verbose") || VERBOSE;
+
+    initial begin
+        mem_ready = 0;
+        mem_rdata = 0;
+        tests_passed = 0;
+    end
 
     always @(posedge clk) begin
         mem_ready <= 0;
         if (mem_valid && !mem_ready) begin
-            if (mem_addr < SIZE) begin
+            if (mem_addr < SIZE * 4) begin
                 mem_ready <= 1;
                 mem_rdata <= memory[mem_addr >> 2];
                 if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
                 if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
                 if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
                 if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
+            end
+            else if (mem_addr == 32'h1000_0000) begin
+                if (verbose) begin
+                    if (32 <= mem_addr && mem_addr < 128)
+                        $display("OUT: '%c'", mem_wdata[7:0]);
+                    else
+                        $display("OUT: %3d", mem_wdata);
+                end
+                else
+                    $write("%c", mem_wdata[7:0]);
+            end
+            else begin
+                if (mem_addr == 32'h2000_0000) begin
+                    if (mem_wdata == 123456789)
+                        tests_passed = 1;
+                end
+                else begin
+                    $display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", mem_wdata);
+                    $finish;
+                end
             end
         end
     end

@@ -18,13 +18,13 @@ module testbench #(
 
     always #5 clk = ~clk;
 
-    integer cntr = 0;
-    always @(posedge clk) begin
-        if (cntr % 1000 == 0) begin
-            $display("Counter cycle: %d", cntr);
-        end
-        cntr = cntr + 1;
-    end
+    // integer cntr = 0;
+    // always @(posedge clk) begin
+    //     if (cntr % 1000 == 0) begin
+    //         $display("Counter cycle: %d", cntr);
+    //     end
+    //     cntr = cntr + 1;
+    // end
 
     initial begin
         repeat (100) @(posedge clk);
@@ -206,16 +206,20 @@ module memory #(
     always @(posedge clk) begin
         mem_ready <= 0;
         if (mem_valid && !mem_ready) begin
+            // SRAM access
             if (mem_addr < SIZE * 4) begin
-                mem_ready <= 1;
+                // Read from memory
                 mem_rdata <= memory[mem_addr >> 2];
+                // Write to memory
                 if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
                 if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
                 if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
                 if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
             end
+            // Console access
             else if (mem_addr == 32'h1000_0000) begin
                 if (verbose) begin
+                    // Write a character or whole word to the console
                     if (32 <= mem_addr && mem_addr < 128)
                         $display("OUT: '%c'", mem_wdata[7:0]);
                     else
@@ -224,16 +228,21 @@ module memory #(
                 else
                     $write("%c", mem_wdata[7:0]);
             end
-            else begin
-                if (mem_addr == 32'h2000_0000) begin
-                    if (mem_wdata == 123456789)
-                        tests_passed = 1;
-                end
-                else begin
-                    $display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", mem_wdata);
-                    $finish;
-                end
+            // Test end signalling
+            else if (mem_addr == 32'h2000_0000) begin
+                if (mem_wdata == 123456789)
+                    tests_passed = 1;
             end
+            // Invalid memory access
+            else begin
+                if (mem_wstrb != 0)
+                    $display("OUT-OF-BOUND MEMORY WRITE TO %08x", mem_addr);
+                else
+                    $display("OUT-OF-BOUND MEMORY READ FROM %08x", mem_addr);
+                $finish;
+            end
+            mem_ready <= 1;
         end
     end
+
 endmodule

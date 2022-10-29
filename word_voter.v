@@ -5,6 +5,9 @@ module word_voter #(
     parameter N = 1
 ) (
     input  [N-1:0] IN [3],
+`ifdef TMR_INJECT_ERR
+    input  [  2:0] ERR_INJECT,
+`endif
     output [N-1:0] OUT,
     output [  2:0] ERROR
 );
@@ -14,9 +17,16 @@ module word_voter #(
     wire match_A_C;
     wire match_B_C;
 
+`ifdef TMR_INJECT_ERR
+    assign A = ERR_INJECT [0] ? ~(IN [0]) : IN [0];
+    assign B = ERR_INJECT [1] ? ~(IN [1]) : IN [1];
+    assign C = ERR_INJECT [2] ? ~(IN [2]) : IN [2];
+`endif
+`ifndef TMR_INJECT_ERR
     assign A = IN [0];
     assign B = IN [1];
     assign C = IN [2];
+`endif
 
     match #(.N(N)) comp_AB (.A(A), .B(B), .OUT(match_A_B));
     match #(.N(N)) comp_AC (.A(A), .B(C), .OUT(match_A_C));

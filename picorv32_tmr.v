@@ -124,6 +124,10 @@ module picorv32_tmr #(
     output        trace_valid,
     output [35:0] trace_data,
 
+    // TMR related interfaces
+`ifdef TMR_INJECT_ERR
+    input  [ 2:0] tmr_inject [14],
+`endif
     output [ 2:0] tmr_errors [14]
 );
 
@@ -229,6 +233,7 @@ module picorv32_tmr #(
       end
     endgenerate
 
+`ifndef TMR_INJECT_ERR
     word_voter #(1)  voter_trap (trap_tmr, trap, tmr_errors [0]);
 
     word_voter #(6)  voter_mem_signals (mem_signals, {mem_valid, mem_instr, mem_wstrb}, tmr_errors [1]);
@@ -246,7 +251,30 @@ module picorv32_tmr #(
 
     word_voter #(32) voter_eoi (eoi_tmr, eoi, tmr_errors [11]);
 
-    word_voter #(1)  voter_trace_valid (trace_valid_tmr, trace_valid, tmr_errors [13]);
-    word_voter #(36) voter_trace_data  (trace_data_tmr, trace_data, tmr_errors [12]);
+    word_voter #(1)  voter_trace_valid (trace_valid_tmr, trace_valid, tmr_errors [12]);
+    word_voter #(36) voter_trace_data  (trace_data_tmr, trace_data, tmr_errors [13]);
+`endif 
+
+`ifdef TMR_INJECT_ERR
+    word_voter #(1)  voter_trap (trap_tmr, tmr_inject [0], trap, tmr_errors [0]);
+
+    word_voter #(6)  voter_mem_signals (mem_signals, tmr_inject [1], {mem_valid, mem_instr, mem_wstrb}, tmr_errors [1]);
+    word_voter #(32) voter_mem_wdata (mem_addr_tmr, tmr_inject [2], mem_addr, tmr_errors [2]);
+    word_voter #(32) voter_mem_addr (mem_wdata_tmr, tmr_inject [3], mem_wdata, tmr_errors [3]);
+
+    word_voter #(6)  voter_mem_la_signals (mem_la_signals, tmr_inject [4], {mem_la_read, mem_la_write, mem_la_wstrb}, tmr_errors [4]);
+    word_voter #(32) voter_mem_la_addr (mem_la_addr_tmr, tmr_inject [5], mem_la_addr, tmr_errors [5]);
+    word_voter #(32) voter_mem_la_wdata (mem_la_wdata_tmr, tmr_inject [6], mem_la_wdata, tmr_errors [6]);
+
+    word_voter #(1)  voter_pcpi_valid (pcpi_valid_tmr, tmr_inject [7], pcpi_valid, tmr_errors [7]);
+    word_voter #(32) voter_pcpi_insn (pcpi_insn_tmr, tmr_inject [8], pcpi_insn, tmr_errors [8]);
+    word_voter #(32) voter_pcpi_rs1 (pcpi_rs1_tmr, tmr_inject [9], pcpi_rs1, tmr_errors [9]);
+    word_voter #(32) voter_pcpi_rs2 (pcpi_rs2_tmr, tmr_inject [10], pcpi_rs2, tmr_errors [10]);
+
+    word_voter #(32) voter_eoi (eoi_tmr, tmr_inject [11], eoi, tmr_errors [11]);
+
+    word_voter #(1)  voter_trace_valid (trace_valid_tmr, tmr_inject [12], trace_valid, tmr_errors [12]);
+    word_voter #(36) voter_trace_data  (trace_data_tmr, tmr_inject [13], trace_data, tmr_errors [13]);
+`endif
 
 endmodule

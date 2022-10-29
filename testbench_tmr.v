@@ -15,16 +15,42 @@ module testbench #(
     reg clk = 1;
     reg resetn = 0;
     wire trap;
+    reg  [ 2:0] tmr_inject [14];
+    wire [ 2:0] tmr_errors [14];
+    wire [41:0] tmr_errors_all;
 
     always #5 clk = ~clk;
 
-    // integer cntr = 0;
-    // always @(posedge clk) begin
-    //     if (cntr % 1000 == 0) begin
-    //         $display("Counter cycle: %d", cntr);
-    //     end
-    //     cntr = cntr + 1;
-    // end
+`ifdef TMR_INJECT_ERR
+    initial begin
+        tmr_inject [ 0] <= 0;
+        tmr_inject [ 1] <= 0;
+        tmr_inject [ 2] <= 0;
+        tmr_inject [ 3] <= 0;
+        tmr_inject [ 4] <= 0;
+        tmr_inject [ 5] <= 0;
+        tmr_inject [ 6] <= 0;
+        tmr_inject [ 7] <= 0;
+        tmr_inject [ 8] <= 0;
+        tmr_inject [ 9] <= 0;
+        tmr_inject [10] <= 0;
+        tmr_inject [11] <= 0;
+        tmr_inject [12] <= 0;
+        tmr_inject [13] <= 0;
+    end
+
+    integer cntr = 0;
+    always @(posedge clk) begin
+        if (cntr == 100000) begin
+            $display("Injecting error");
+            tmr_inject [3] <= 3'b001;
+        end
+        else begin
+            tmr_inject [3] <= 0;
+        end
+        cntr = cntr + 1;
+    end
+`endif
 
     initial begin
         repeat (100) @(posedge clk);
@@ -59,6 +85,32 @@ module testbench #(
         end
     end
 
+    assign tmr_errors_all = {tmr_errors[13], tmr_errors[12], tmr_errors[11], tmr_errors[10],
+                             tmr_errors[ 9], tmr_errors[ 8], tmr_errors[ 7], tmr_errors[ 6],
+                             tmr_errors[ 5], tmr_errors[ 4], tmr_errors[ 3], tmr_errors[ 2],
+                             tmr_errors[ 1], tmr_errors[ 0]};
+
+    always @(posedge clk) begin
+        if (tmr_errors_all != 0) begin
+            $display("TMR ERROR DETECTED!");
+            $display("Displaying TMR error status:");
+            $display("TMR TRAP           [%3b]", tmr_errors[ 0]);
+            $display("TMR MEM_SIGS       [%3b]", tmr_errors[ 1]);
+            $display("TMR MEM_WDATA      [%3b]", tmr_errors[ 2]);
+            $display("TMR MEM_ADDR       [%3b]", tmr_errors[ 3]);
+            $display("TMR MEM_LA_SIGS    [%3b]", tmr_errors[ 4]);
+            $display("TMR MEM_LA_ADDR    [%3b]", tmr_errors[ 5]);
+            $display("TMR MEM_LA_WDATA   [%3b]", tmr_errors[ 6]);
+            $display("TMR PCPI_VALID     [%3b]", tmr_errors[ 7]);
+            $display("TMR PCPI_INSN      [%3b]", tmr_errors[ 8]);
+            $display("TMR PCPI_RS1       [%3b]", tmr_errors[ 9]);
+            $display("TMR PCPI_RS2       [%3b]", tmr_errors[10]);
+            $display("TMR EOI            [%3b]", tmr_errors[11]);
+            $display("TMR TRACE_VALID    [%3b]", tmr_errors[12]);
+            $display("TMR TRACE_DATA     [%3b]", tmr_errors[13]);
+        end
+    end
+
     picorv32_wrapper #(
         .AXI_TEST (AXI_TEST),
         .VERBOSE  (VERBOSE)
@@ -67,7 +119,11 @@ module testbench #(
         .resetn(resetn),
         .trap(trap),
         .trace_valid(trace_valid),
-        .trace_data(trace_data)
+        .trace_data(trace_data),
+`ifdef TMR_INJECT_ERR
+        .tmr_inject(tmr_inject),
+`endif
+        .tmr_errors(tmr_errors)
     );
 endmodule
 `endif
@@ -80,7 +136,11 @@ module picorv32_wrapper #(
     input resetn,
     output trap,
     output trace_valid,
-    output [35:0] trace_data
+    output [35:0] trace_data,
+`ifdef TMR_INJECT_ERR
+    input  [ 2:0] tmr_inject [14],
+`endif
+    output [ 2:0] tmr_errors [14]
 );
     wire tests_passed;
     reg [31:0] irq = 0;
@@ -144,7 +204,11 @@ module picorv32_wrapper #(
         .mem_rdata      (mem_rdata      ),
         .irq            (irq            ),
         .trace_valid    (trace_valid    ),
-        .trace_data     (trace_data     )
+        .trace_data     (trace_data     ),
+`ifdef TMR_INJECT_ERR
+        .tmr_inject     (tmr_inject     ),
+`endif
+        .tmr_errors     (tmr_errors     )
     );
 
     reg [1023:0] firmware_file;

@@ -77,6 +77,10 @@ testbench.vvp: testbench.v picorv32.v
 	chmod -x $@
 
 testbench_tmr.vvp: testbench_tmr.v picorv32_tmr.v picorv32.v word_voter.v
+	$(IVERILOG) -g2005-sv -o $@ -DTMR_INJECT_ERR $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
+	chmod -x $@
+
+testbench_native.vvp: testbench_native.v picorv32.v
 	$(IVERILOG) -g2005-sv -o $@ $(subst C,-DCOMPRESSED_ISA,$(COMPRESSED_ISA)) $^
 	chmod -x $@
 
